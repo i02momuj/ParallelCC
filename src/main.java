@@ -1,10 +1,9 @@
 import mulan.classifier.transformation.BinaryRelevance;
-import mulan.classifier.transformation.CC;
+import mulan.classifier.transformation.ClassicCC;
 import mulan.classifier.transformation.ClassifierChain;
 import mulan.classifier.transformation.EnsembleOfClassifierChains;
-import mulan.classifier.transformation.ParallelCC6;
-import mulan.classifier.transformation.ParallelCC4;
 import mulan.classifier.transformation.ParallelCC;
+import mulan.classifier.transformation.NewCC;
 import mulan.data.InvalidDataFormatException;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
@@ -18,9 +17,11 @@ public class main {
 		 * READ DATA
 		 */
 		
-		String train = "data/Yeast-train.arff";
-		String test = "data/Yeast-test.arff";
-		String xml = "data/Yeast.xml";
+		String dataset = "Birds";
+		
+		String train = "data/" + dataset + "-train.arff";
+		String test = "data/" + dataset + "-test.arff";
+		String xml = "data/" + dataset + ".xml";
 		
 		try {
 			MultiLabelInstances trainData = new MultiLabelInstances(train, xml);
@@ -28,7 +29,8 @@ public class main {
 			
 			int q = trainData.getNumLabels();
 			
-			int [] chain = {0, 13, 1, 12, 2, 11, 3, 10, 4, 9, 5, 8, 6, 7};
+			int [] chain = {12, 9, 4, 5, 15, 7, 10, 13, 6, 3, 2, 0, 14, 8, 11, 16, 1, 18, 17};
+//			int [] chain = {0, 13, 1, 12, 2, 11, 3, 10, 4, 9, 5, 8, 6, 7};
 //			int [] chain = {5, 1, 3, 0, 2, 4};
 			
 			Evaluator eval = new Evaluator();
@@ -43,19 +45,31 @@ public class main {
 			System.out.println("BR:  " + results.toCSV());
 			System.out.println("Time: " + (end_time - init_time) + " ms.");
 			
-			CC cc = new CC(new J48(), chain);
-			cc.build(trainData.clone());
-			results = eval.evaluate(cc, testData.clone(), trainData.clone());
+			init_time = System.currentTimeMillis();
+			ClassicCC classicCC = new ClassicCC(new J48(), chain);
+			classicCC.build(trainData.clone());
+			results = eval.evaluate(classicCC, testData.clone(), trainData.clone());
 			end_time = System.currentTimeMillis();			
-			System.out.println("CC:  " + results.toCSV());
+			System.out.println("classicCC:  " + results.toCSV());
 			System.out.println("Time: " + (end_time - init_time) + " ms.");
 			
+			init_time = System.currentTimeMillis();
+			NewCC newCC = new NewCC(new J48(), chain);
+			newCC.build(trainData.clone());			
+			results = eval.evaluate(newCC, testData.clone(), trainData.clone());
+			end_time = System.currentTimeMillis();			
+			System.out.println("newCC: " + results.toCSV());
+			System.out.println("Time: " + (end_time - init_time) + " ms.");
+			
+			init_time = System.currentTimeMillis();
 			ParallelCC pcc = new ParallelCC(new J48(), chain);
 			pcc.build(trainData.clone());			
 			results = eval.evaluate(pcc, testData.clone(), trainData.clone());
 			end_time = System.currentTimeMillis();			
 			System.out.println("pCC: " + results.toCSV());
 			System.out.println("Time: " + (end_time - init_time) + " ms.");
+			
+			
 			
 						
 			/*
