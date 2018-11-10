@@ -61,6 +61,7 @@ public class main {
 			
 			init_time = System.currentTimeMillis();
 			ParallelCC pcc = new ParallelCC(new J48(), chain);
+//			pcc.setNumThreads(4);
 			pcc.build(trainData.clone());			
 			results = eval.evaluate(pcc, testData.clone(), trainData.clone());
 			end_time = System.currentTimeMillis();			

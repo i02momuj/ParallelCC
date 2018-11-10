@@ -16,7 +16,6 @@
 package parallelCC;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +23,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import mulan.classifier.MultiLabelOutput;
-import mulan.classifier.transformation.TransformationBasedMultiLabelLearner;
 import mulan.data.DataUtils;
 import mulan.data.MultiLabelInstances;
 import weka.classifiers.AbstractClassifier;
@@ -34,158 +32,24 @@ import weka.classifiers.trees.J48;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.filters.Filter;
 import weka.filters.unsupervised.attribute.Remove;
 
 /**
- * <p>Implementation of the Classifier Chain (ParallelCC) algorithm.</p> <p>For more
- * information, see <em>Read, J.; Pfahringer, B.; Holmes, G.; Frank, E.
- * (2011) Classifier Chains for Multi-label Classification. Machine Learning.
- * 85(3):335-359.</em></p>
+ * Implementation of the Parallel Classifier Chain (PCC) algorithm. 
+ * It is able to build CC by using predictions on training; and not only ground truth (as Mulan).
+ * Many binary classifiers are built in parallel, using predictions of labels that have been previously built.
+ * For mor information, see <em></em>
  *
- * @author Eleftherios Spyromitros-Xioufis
- * @author Konstantinos Sechidis
- * @author Grigorios Tsoumakas
- * @version 2012.02.27
+ * @author Jose M. Moyano
+ * @version 2018.11.27
  */
-public class ParallelCC extends TransformationBasedMultiLabelLearner {
-	
-	public static class MyThread extends Thread {
-		
-		int i;
-		
-		MyThread(int i, Instances trainDataset, int [] labelIndices, int [] chain,
-				FilteredClassifier[] ensemble, Lock lock, int numLabels,
-				Classifier baseClassifier, byte [] trained, boolean usePredictions){
-			this.i = i;
-			this.trainDataset = trainDataset;
-			this.labelIndices = labelIndices;
-			this.chain = chain;
-			this.ensemble = ensemble;
-			this.lock = lock;
-			this.numLabels = numLabels;
-			this.baseClassifier = baseClassifier;
-			this.trained = trained;
-			this.usePredictions = usePredictions;
-		}
-		
-		Instances trainDataset;
-		int [] labelIndices;
-		int [] chain;
-		FilteredClassifier[] ensemble;
-		Lock lock;
-		int numLabels;
-		Classifier baseClassifier;
-		byte [] trained;
-		boolean usePredictions;
-		
-		public void run() {
-			try {
-				//Create copy of data for each classifier
-	        	Instances iData = new Instances(trainDataset);
-	        	iData.setClassIndex(labelIndices[chain[i]]);
-	        	
-	        	//List that store the labels to remove in each case
-	        	ArrayList<Integer> toRemoveLabels = new ArrayList<Integer>();//new ArrayList<Integer>(Arrays.asList(Arrays.stream(chain).boxed().toArray(Integer[]::new)));
-
-	            ensemble[i] = new FilteredClassifier();
-	            ensemble[i].setClassifier(AbstractClassifier.makeCopy(baseClassifier));
-	            
-//	            synchronized(this) {
-	            lock.lock();
-		            for(int j=0; j<numLabels; j++) {
-		            	if((j != chain[i]) && (trained[j] == 0)) {
-		            		toRemoveLabels.add(labelIndices[j]);
-		            	}
-		            }
-		        lock.unlock();
-//	            }
-	            int [] indicesToRemove = toRemoveLabels.stream().mapToInt(Integer::intValue).toArray();
-	            
-	            
-	            //Remove labels
-	            Remove remove = new Remove();
-	            remove.setAttributeIndicesArray(indicesToRemove);
-	            remove.setInputFormat(iData);
-	            remove.setInvertSelection(false);
-	            ensemble[i].setFilter(remove);
-	            
-	            //Build model
-	            iData.setClassIndex(labelIndices[chain[i]]);
-	            //System.out.println("Bulding model " + (i + 1) + "/" + numLabels);
-	            ensemble[i].buildClassifier(iData);
-
-	            //Pred train instances
-	            //Look for labels to remove
-	        	//I HAVE TO DO THIS IN OTHER WAY
-	        	//Do it in an attribute separated; and then in lock only copy to dataset
-//	            synchronized(this) {
-	            lock.lock();
-		            if(usePredictions) {
-		            	for(int j=0; j<iData.numInstances(); j++) {
-		                	boolean[] bip = makePredictionInternal(i, iData.get(j)).getBipartition();
-		                	trainDataset.get(j).setValue(labelIndices[chain[i]], bip[0]? 1:0);
-		                }
-		            }
-		            trained[chain[i]] = 1;
-		        lock.unlock();
-//	            }
-			}catch(Exception e) {
-			e.printStackTrace();	
-			}
-		}
-		
-		
-		protected MultiLabelOutput makePredictionInternal(int classifier, Instance instance) throws Exception {
-	        boolean[] bipartition = new boolean[1];
-	        double[] confidences = new double[1];
-
-	        Instance tempInstance = DataUtils.createInstance(instance, instance.weight(), instance.toDoubleArray());
-//	        for (int counter = 0; counter < numLabels; counter++) {
-	           	int counter = classifier;
-	        	double distribution[];
-	            try {
-	                distribution = ensemble[counter].distributionForInstance(tempInstance);
-	            } catch (Exception e) {
-	                System.out.println(e);
-	                return null;
-	            }
-	            int maxIndex = (distribution[0] > distribution[1]) ? 0 : 1;
-
-	            // Ensure correct predictions both for class values {0,1} and {1,0}
-	            Attribute classAttribute = ensemble[counter].getFilter().getOutputFormat().classAttribute();
-	            bipartition[0] = (classAttribute.value(maxIndex).equals("1")) ? true : false;
-
-	            // The confidence of the label being equal to 1
-	            confidences[0] = distribution[classAttribute.indexOfValue("1")];
-
-	            tempInstance.setValue(labelIndices[0], maxIndex);
-
-//	        }
-
-	        MultiLabelOutput mlo = new MultiLabelOutput(bipartition, confidences);
-	        return mlo;
-	    }
-	}
-	
-    /**
-     * The new chain ordering of the label indices
-     */
-    private int[] chain;
-    /**
-     * The ensemble of binary relevance models. These are Weka
-     * FilteredClassifier objects, where the filter corresponds to removing all
-     * label apart from the one that serves as a target for the corresponding
-     * model.
-     */
-    protected FilteredClassifier[] ensemble;
+public class ParallelCC extends NewCC {	
     
     /**
-     * 
+     * Number of threads to execute PCC in parallel
+     * By default, it obtains all available processors
      */
-    byte [] trained;
-    boolean usePredictions = true;
-    private Lock lock = new ReentrantLock();
+    int numThreads = Runtime.getRuntime().availableProcessors();
 
     /**
      * Creates a new instance using J48 as the underlying classifier
@@ -195,26 +59,27 @@ public class ParallelCC extends TransformationBasedMultiLabelLearner {
     }
 
     /**
-     * Creates a new instance
-     *
-     * @param classifier the base-level classification algorithm that will be
-     * used for training each of the binary models
-     * @param aChain contains the order of the label indexes [0..numLabels-1] 
+     * Creates a new instance given underlying classifier and chain
+     * 
+     * @param classifier Single-label classifier
+     * @param aChain Chain of labels
      */
     public ParallelCC(Classifier classifier, int[] aChain) {
-        super(classifier);
-        chain = aChain; 
+        super(classifier, aChain);
     }
 
     /**
-     * Creates a new instance
-     *
-     * @param classifier the base-level classification algorithm that will be
-     * used for training each of the binary models
+     * Creates a new instance given underlying classifier
+     * 
+     * @param classifier Single-label classifier
      */
     public ParallelCC(Classifier classifier) {
         super(classifier);
     }
+    
+    public void setNumThreads(int numThreads) {
+    	this.numThreads = numThreads;
+    }    
 
     protected void buildInternal(MultiLabelInstances train) throws Exception {
         //Create chain if it does not exists
@@ -234,49 +99,200 @@ public class ParallelCC extends TransformationBasedMultiLabelLearner {
         ensemble = new FilteredClassifier[numLabels];
         trainDataset = train.getDataSet();
         
-        ExecutorService executorService = Executors.newFixedThreadPool(8);
+        //Set number of threads
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         
+        //Loop for building classifier for each label (in parallel)
         for (int i = 0; i < numLabels; i++) {        	
-        	executorService.execute(new MyThread(i, trainDataset, labelIndices, chain,
-    				ensemble, lock, numLabels, baseClassifier, trained, usePredictions));
+        	executorService.execute(new BuildClassifierParallel(i, trainDataset, labelIndices, chain,
+    				ensemble, baseClassifier, trained, usePredictions));
         }
         
         executorService.shutdown();
+        
 		try {
 			executorService.awaitTermination(5, TimeUnit.SECONDS);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
     }
+    
+    /**
+     * Class that extends Thread, for code that is executed in parallel
+     * 
+     * @author Jose M. Moyano
+     */
+    public static class BuildClassifierParallel extends Thread {
+		
+		/**
+		 * Index of label to build the classifier
+		 */
+		int labelIndex;
+		
+		/**
+		 * Training dataset
+		 */
+		Instances trainDataset;
+		
+		/**
+		 * Indices of labels in the dataset
+		 */
+		int [] labelIndices;
+		
+		/**
+		 * Chain ordering
+		 */
+		int [] chain;
+		
+		/**
+		 * Set of filtered classifiers
+		 */
+		FilteredClassifier[] ensemble;
+		
+		/**
+		 * Variable to lock critical code
+		 */
+	    private Lock lock = new ReentrantLock();
+	    
+	    /**
+	     * Number of labels in the dataset
+	     */
+		int numLabels;
+		
+		/**
+		 * Single-label classifier to use
+		 */
+		Classifier baseClassifier;
+		
+		/**
+		 * Indicates which labels have been previously trained
+		 */
+		byte [] trained;
+		
+		/**
+		 * Indicates if predictions are used in training phase, instead of ground truth
+		 */
+		boolean usePredictions;
+		
+		/**
+		 * Constructor
+		 * 
+		 * @param labelIndex
+		 * @param trainDataset
+		 * @param labelIndices
+		 * @param chain
+		 * @param ensemble
+		 * @param baseClassifier
+		 * @param trained
+		 * @param usePredictions
+		 */
+		BuildClassifierParallel(int labelIndex, Instances trainDataset, int [] labelIndices, int [] chain,
+				FilteredClassifier[] ensemble, Classifier baseClassifier, byte [] trained, boolean usePredictions){
+			this.labelIndex = labelIndex;
+			this.trainDataset = trainDataset;
+			this.labelIndices = labelIndices;
+			this.chain = chain;
+			this.ensemble = ensemble;
+			this.numLabels = labelIndices.length;
+			this.baseClassifier = baseClassifier;
+			this.trained = trained;
+			this.usePredictions = usePredictions;
+		}
+		
+		/**
+		 * Override run method for parallel execution.
+		 * It is in charge of building each binary classifier of CC.
+		 * Critical code is locked (only one thread simoultaneously)
+		 */
+		public void run() {
+			try {
+				//Create copy of data for each classifier
+	        	Instances iData = new Instances(trainDataset);
+	        	iData.setClassIndex(labelIndices[chain[labelIndex]]);
+	        	
+	        	//List that store the labels to remove in each case
+	        	ArrayList<Integer> toRemoveLabels = new ArrayList<Integer>();
 
-    protected MultiLabelOutput makePredictionInternal(Instance instance) throws Exception {
-        boolean[] bipartition = new boolean[numLabels];
-        double[] confidences = new double[numLabels];
+	            ensemble[labelIndex] = new FilteredClassifier();
+	            ensemble[labelIndex].setClassifier(AbstractClassifier.makeCopy(baseClassifier));
+	            
+	            //Lock critical code
+	            //Check which labels have been previously trained
+	            //Keep labels that have been previously trained and current label; remove the rest
+	            lock.lock();
+	            for(int j=0; j<numLabels; j++) {
+	            	if((j != chain[labelIndex]) && (trained[j] == 0)) {
+	            		toRemoveLabels.add(labelIndices[j]);
+	            	}
+	            }
+	            lock.unlock();
+	            int [] indicesToRemove = toRemoveLabels.stream().mapToInt(Integer::intValue).toArray();
+	            
+	            //Remove labels
+	            Remove remove = new Remove();
+	            remove.setAttributeIndicesArray(indicesToRemove);
+	            remove.setInputFormat(iData);
+	            remove.setInvertSelection(false);
+	            ensemble[labelIndex].setFilter(remove);
+	            
+	            //Build model
+	            iData.setClassIndex(labelIndices[chain[labelIndex]]);
+	            ensemble[labelIndex].buildClassifier(iData);
 
-        Instance tempInstance = DataUtils.createInstance(instance, instance.weight(), instance.toDoubleArray());
-        for (int counter = 0; counter < numLabels; counter++) {
-            double distribution[];
-            try {
-                distribution = ensemble[counter].distributionForInstance(tempInstance);
-            } catch (Exception e) {
-                System.out.println(e);
-                return null;
-            }
-            int maxIndex = (distribution[0] > distribution[1]) ? 0 : 1;
+	            //Lock critical code
+	            //Predict over training instances
+		        	//I HAVE TO DO THIS IN OTHER WAY
+		        	//Do it in an attribute separated; and then in lock only copy to dataset
+	            lock.lock();
+		        if(usePredictions) {
+		        	for(int j=0; j<iData.numInstances(); j++) {
+		            	boolean[] bip = makePredictionInternal(labelIndex, iData.get(j)).getBipartition();
+		                trainDataset.get(j).setValue(labelIndices[chain[labelIndex]], bip[0]? 1:0);
+		        	}
+		        }
+		        trained[chain[labelIndex]] = 1;
+		        lock.unlock();
 
-            // Ensure correct predictions both for class values {0,1} and {1,0}
-            Attribute classAttribute = ensemble[counter].getFilter().getOutputFormat().classAttribute();
-            bipartition[chain[counter]] = (classAttribute.value(maxIndex).equals("1")) ? true : false;
+			}catch(Exception e) {
+			e.printStackTrace();	
+			}
+		}
+		
+		/**
+	     * Make prediction for a given i-th classifier in the chain and a given instance
+	     * 
+	     * @param classifierIndex Index of the label to predict
+	     * @param instance Instance to predict the label
+	     * @return Output predicted by i-th classifier for given instance
+	     * @throws Exception
+	     */
+	    protected MultiLabelOutput makePredictionInternal(int classifierIndex, Instance instance) throws Exception {
+	        boolean[] bipartition = new boolean[1];
+	        double[] confidences = new double[1];
 
-            // The confidence of the label being equal to 1
-            confidences[chain[counter]] = distribution[classAttribute.indexOfValue("1")];
+	        Instance tempInstance = DataUtils.createInstance(instance, instance.weight(), instance.toDoubleArray());
 
-            tempInstance.setValue(labelIndices[chain[counter]], maxIndex);
+	        double distribution[];
+	        try {
+	        	distribution = ensemble[classifierIndex].distributionForInstance(tempInstance);
+	        } catch (Exception e) {
+	        	System.out.println(e);
+	            return null;
+	        }
+	        int maxIndex = (distribution[0] > distribution[1]) ? 0 : 1;
 
-        }
+	        // Ensure correct predictions both for class values {0,1} and {1,0}
+	        Attribute classAttribute = ensemble[classifierIndex].getFilter().getOutputFormat().classAttribute();
+	        bipartition[0] = (classAttribute.value(maxIndex).equals("1")) ? true : false;
 
-        MultiLabelOutput mlo = new MultiLabelOutput(bipartition, confidences);
-        return mlo;
-    }
+	        // The confidence of the label being equal to 1
+	        confidences[0] = distribution[classAttribute.indexOfValue("1")];
+
+	        tempInstance.setValue(labelIndices[0], maxIndex);
+
+	        MultiLabelOutput mlo = new MultiLabelOutput(bipartition, confidences);
+	        return mlo;
+	    }
+	}
     
 }
