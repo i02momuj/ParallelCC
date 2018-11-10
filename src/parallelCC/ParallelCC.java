@@ -50,6 +50,11 @@ public class ParallelCC extends NewCC {
      * By default, it obtains all available processors
      */
     int numThreads = Runtime.getRuntime().availableProcessors();
+    
+    /**
+     * Variable to lock critical code
+     */
+    Lock lock = new ReentrantLock();
 
     /**
      * Creates a new instance using J48 as the underlying classifier
@@ -105,7 +110,7 @@ public class ParallelCC extends NewCC {
         //Loop for building classifier for each label (in parallel)
         for (int i = 0; i < numLabels; i++) {        	
         	executorService.execute(new BuildClassifierParallel(i, trainDataset, labelIndices, chain,
-    				ensemble, baseClassifier, trained, usePredictions));
+    				ensemble, baseClassifier, trained, usePredictions, lock));
         }
         
         executorService.shutdown();
@@ -152,7 +157,7 @@ public class ParallelCC extends NewCC {
 		/**
 		 * Variable to lock critical code
 		 */
-	    private Lock lock = new ReentrantLock();
+	    private Lock lock;
 	    
 	    /**
 	     * Number of labels in the dataset
@@ -187,7 +192,8 @@ public class ParallelCC extends NewCC {
 		 * @param usePredictions
 		 */
 		BuildClassifierParallel(int labelIndex, Instances trainDataset, int [] labelIndices, int [] chain,
-				FilteredClassifier[] ensemble, Classifier baseClassifier, byte [] trained, boolean usePredictions){
+				FilteredClassifier[] ensemble, Classifier baseClassifier, byte [] trained, boolean usePredictions, 
+				Lock lock){
 			this.labelIndex = labelIndex;
 			this.trainDataset = trainDataset;
 			this.labelIndices = labelIndices;
@@ -197,6 +203,7 @@ public class ParallelCC extends NewCC {
 			this.baseClassifier = baseClassifier;
 			this.trained = trained;
 			this.usePredictions = usePredictions;
+			this.lock = lock;
 		}
 		
 		/**
@@ -239,19 +246,31 @@ public class ParallelCC extends NewCC {
 	            iData.setClassIndex(labelIndices[chain[labelIndex]]);
 	            ensemble[labelIndex].buildClassifier(iData);
 
-	            //Lock critical code
 	            //Predict over training instances
-		        	//I HAVE TO DO THIS IN OTHER WAY
-		        	//Do it in an attribute separated; and then in lock only copy to dataset
-	            lock.lock();
-		        if(usePredictions) {
+	            if(usePredictions) {
+	            	//Bipartition for each instance
+	            	boolean[] bip = new boolean[iData.numInstances()];
+	            	
+	            	//Get bipartition for each training instance
 		        	for(int j=0; j<iData.numInstances(); j++) {
-		            	boolean[] bip = makePredictionInternal(labelIndex, iData.get(j)).getBipartition();
-		                trainDataset.get(j).setValue(labelIndices[chain[labelIndex]], bip[0]? 1:0);
+		            	bip[j] = makePredictionInternal(labelIndex, iData.get(j)).getBipartition()[0];
 		        	}
+		        	
+		        	//Set prediction values in training dataset
+		        	for(int j=0; j<iData.numInstances(); j++) {
+		                trainDataset.get(j).setValue(labelIndices[chain[labelIndex]], bip[j]? 1:0);
+		        	}
+		        	
+		        	//Comments about the latest for loop 
+		        	//We don't mind if we are adding predictions to the data and another thread is copying the dataset
+		        	// because this label then is going to be removed
+		        	//The important thing is to lock when defining that the given label has been trained
+		        	
+		        	//Lock critical code
+		        	lock.lock();
+			        trained[chain[labelIndex]] = 1;
+			        lock.unlock();
 		        }
-		        trained[chain[labelIndex]] = 1;
-		        lock.unlock();
 
 			}catch(Exception e) {
 			e.printStackTrace();	
