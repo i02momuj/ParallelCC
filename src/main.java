@@ -2,12 +2,12 @@ import mulan.classifier.transformation.BinaryRelevance;
 import mulan.classifier.transformation.ClassicCC;
 import mulan.classifier.transformation.ClassifierChain;
 import mulan.classifier.transformation.EnsembleOfClassifierChains;
-import mulan.classifier.transformation.ParallelCC;
-import mulan.classifier.transformation.NewCC;
 import mulan.data.InvalidDataFormatException;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
 import mulan.evaluation.Evaluator;
+import parallelCC.NewCC;
+import parallelCC.ParallelCC;
 import weka.classifiers.trees.J48;
 
 public class main {
@@ -17,7 +17,7 @@ public class main {
 		 * READ DATA
 		 */
 		
-		String dataset = "Birds";
+		String dataset = "Yeast";
 		
 		String train = "data/" + dataset + "-train.arff";
 		String test = "data/" + dataset + "-test.arff";
@@ -27,10 +27,8 @@ public class main {
 			MultiLabelInstances trainData = new MultiLabelInstances(train, xml);
 			MultiLabelInstances testData = new MultiLabelInstances(test, xml);
 			
-			int q = trainData.getNumLabels();
-			
-			int [] chain = {12, 9, 4, 5, 15, 7, 10, 13, 6, 3, 2, 0, 14, 8, 11, 16, 1, 18, 17};
-//			int [] chain = {0, 13, 1, 12, 2, 11, 3, 10, 4, 9, 5, 8, 6, 7};
+//			int [] chain = {12, 9, 4, 5, 15, 7, 10, 13, 6, 3, 2, 0, 14, 8, 11, 16, 1, 18, 17};
+			int [] chain = {0, 13, 1, 12, 2, 11, 3, 10, 4, 9, 5, 8, 6, 7};
 //			int [] chain = {5, 1, 3, 0, 2, 4};
 			
 			Evaluator eval = new Evaluator();
