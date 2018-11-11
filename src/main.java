@@ -136,7 +136,7 @@ public class main {
 						pcc.build(trainData);
 						results = eval.evaluate(pcc, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "pCC", (end_time - init_time));
+						main.printResults(pw, results, trainFilenames.get(f), "pCC_" + numThreads, (end_time - init_time));
 					}
 				}
 				else {
