@@ -15,6 +15,8 @@
  */
 package mulan.classifier.transformation;
 
+import java.util.Random;
+
 import mulan.classifier.MultiLabelOutput;
 import mulan.data.DataUtils;
 import mulan.data.MultiLabelInstances;
@@ -51,6 +53,11 @@ public class ClassicCC extends TransformationBasedMultiLabelLearner {
      * model.
      */
     protected FilteredClassifier[] ensemble;
+    
+    /**
+     * Seed for random numbers
+     */
+    protected long seed = 1;
 
     /**
      * Creates a new instance using J48 as the underlying classifier
@@ -80,13 +87,20 @@ public class ClassicCC extends TransformationBasedMultiLabelLearner {
     public ClassicCC(Classifier classifier) {
         super(classifier);
     }
+    
+    /**
+     * Set the seed for random numbers
+     * 
+     * @param seed Seed for random numbers
+     */
+    public void setSeed(long seed) {
+    	this.seed = seed;
+    }
 
     protected void buildInternal(MultiLabelInstances train) throws Exception {
-        if (chain == null) {
-            chain = new int[numLabels];
-            for (int i = 0; i < numLabels; i++) {
-                chain[i] = i;
-            }
+    	//Create RANDOM chain if it does not exists
+    	if (chain == null) {
+            chain = randomChain(seed);
         }
 
         Instances trainDataset;
@@ -148,5 +162,28 @@ public class ClassicCC extends TransformationBasedMultiLabelLearner {
 
         MultiLabelOutput mlo = new MultiLabelOutput(bipartition, confidences);
         return mlo;
+    }
+    
+    /**
+     * Generates a random chain
+     * 
+     * @return Random chain for label ordering
+     */
+    protected int[] randomChain(long seed) {
+    	chain = new int[numLabels];
+        for (int i = 0; i < numLabels; i++) {
+            chain[i] = i;
+        }
+        
+        Random rand = new Random(seed);
+        int swap, r;
+        for (int i = 0; i < numLabels; i++) {
+            r = rand.nextInt(numLabels);
+        	swap = chain[i];
+        	chain[i] = chain[r];
+        	chain[r] = swap;
+        }
+        
+        return chain;
     }
 }

@@ -16,6 +16,8 @@
 package parallelCC;
 
 import java.util.ArrayList;
+import java.util.Random;
+
 import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.transformation.ClassicCC;
 import mulan.data.DataUtils;
@@ -91,12 +93,9 @@ public class NewCC extends ClassicCC {
      * It takes the basis to be able to make it parallelizable
      */
     protected void buildInternal(MultiLabelInstances train) throws Exception {
-        //Create chain if it does not exists
+        //Create RANDOM chain if it does not exists
     	if (chain == null) {
-            chain = new int[numLabels];
-            for (int i = 0; i < numLabels; i++) {
-                chain[i] = i;
-            }
+            chain = randomChain(seed);
         }
         
     	//At the beginning, all bytes from 'trained' are zeros

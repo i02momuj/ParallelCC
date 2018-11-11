@@ -88,11 +88,9 @@ public class ParallelCC extends NewCC {
 
     protected void buildInternal(MultiLabelInstances train) throws Exception {
         //Create chain if it does not exists
+    	//Create RANDOM chain if it does not exists
     	if (chain == null) {
-            chain = new int[numLabels];
-            for (int i = 0; i < numLabels; i++) {
-                chain[i] = i;
-            }
+            chain = randomChain(seed);
         }
         
     	//At the beginning, all bytes from 'trained' are zeros

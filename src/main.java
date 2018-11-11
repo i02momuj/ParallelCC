@@ -1,102 +1,224 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
+
 import mulan.classifier.transformation.BinaryRelevance;
-import mulan.classifier.transformation.ClassicCC;
-import mulan.classifier.transformation.ClassifierChain;
-import mulan.classifier.transformation.EnsembleOfClassifierChains;
 import mulan.data.InvalidDataFormatException;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
 import mulan.evaluation.Evaluator;
+import mulan.evaluation.measure.AveragePrecision;
+import mulan.evaluation.measure.Coverage;
+import mulan.evaluation.measure.ErrorSetSize;
+import mulan.evaluation.measure.ExampleBasedAccuracy;
+import mulan.evaluation.measure.ExampleBasedFMeasure;
+import mulan.evaluation.measure.ExampleBasedPrecision;
+import mulan.evaluation.measure.ExampleBasedRecall;
+import mulan.evaluation.measure.ExampleBasedSpecificity;
+import mulan.evaluation.measure.GeometricMeanAveragePrecision;
+import mulan.evaluation.measure.HammingLoss;
+import mulan.evaluation.measure.IsError;
+import mulan.evaluation.measure.MacroFMeasure;
+import mulan.evaluation.measure.MacroPrecision;
+import mulan.evaluation.measure.MacroRecall;
+import mulan.evaluation.measure.MacroSpecificity;
+import mulan.evaluation.measure.MeanAveragePrecision;
+import mulan.evaluation.measure.Measure;
+import mulan.evaluation.measure.MicroFMeasure;
+import mulan.evaluation.measure.MicroPrecision;
+import mulan.evaluation.measure.MicroRecall;
+import mulan.evaluation.measure.MicroSpecificity;
+import mulan.evaluation.measure.OneError;
+import mulan.evaluation.measure.RankingLoss;
+import mulan.evaluation.measure.SubsetAccuracy;
 import parallelCC.NewCC;
 import parallelCC.ParallelCC;
 import weka.classifiers.trees.J48;
+import weka.core.Utils;
 
 public class main {
-
+	
+	/**
+	 * Arguments to main method are:
+	 * 	1) -d Path file including paths to datasets
+	 *  2) -t Number of threads
+	 *  3) -s Number of different seeds for random numbers
+	 *  4) -o Report filename
+	 *  5) -a Algorithm to execute (BR, CC, PCC)
+	 *  
+	 * @param args
+	 */
 	public static void main(String [] args) {
-		/*
-		 * READ DATA
-		 */
-		
-		String dataset = "Yeast";
-		
-		String train = "data/" + dataset + "-train.arff";
-		String test = "data/" + dataset + "-test.arff";
-		String xml = "data/" + dataset + ".xml";
+
+		PrintWriter pw = null;			
+		ArrayList<String> trainFilenames = new ArrayList<String>();
+		ArrayList<String> testFilenames = new ArrayList<String>();
+		ArrayList<String> xmlFilenames = new ArrayList<String>();
 		
 		try {
-			MultiLabelInstances trainData = new MultiLabelInstances(train, xml);
-			MultiLabelInstances testData = new MultiLabelInstances(test, xml);
+			String dataFilenames = Utils.getOption("d", args);
 			
-//			int [] chain = {12, 9, 4, 5, 15, 7, 10, 13, 6, 3, 2, 0, 14, 8, 11, 16, 1, 18, 17};
-			int [] chain = {0, 13, 1, 12, 2, 11, 3, 10, 4, 9, 5, 8, 6, 7};
-//			int [] chain = {5, 1, 3, 0, 2, 4};
+			int numThreads = Integer.parseInt(Utils.getOption("t", args));
+			if(numThreads < 1) {
+				numThreads = Runtime.getRuntime().availableProcessors();
+			}
 			
+			String reportFilename = Utils.getOption("o", args);
+			int numSeeds = Integer.parseInt(Utils.getOption("s", args));
+			String algorithm = Utils.getOption("a", args);
+			
+			//Read filenames
+			BufferedReader b = null;		
+			b = new BufferedReader(new FileReader(new File(dataFilenames)));
+			String readLine = "";
+			String [] words;			
+			while ((readLine = b.readLine()) != null) {
+				words = readLine.split(" ");
+                trainFilenames.add(words[0]);
+                testFilenames.add(words[1]);
+                xmlFilenames.add(words[2]);
+            }
+			b.close();
+			int nFiles = trainFilenames.size();
+			
+			MultiLabelInstances trainData = null;
+			MultiLabelInstances testData = null;
+			List<Measure> measures = null;
 			Evaluator eval = new Evaluator();
 			Evaluation results;
+			long init_time, end_time;
 			
-			long init_time = System.currentTimeMillis();
-
-			BinaryRelevance br = new BinaryRelevance(new J48());
-			br.build(trainData.clone());			
-			results = eval.evaluate(br, testData.clone(), trainData.clone());
-			long end_time = System.currentTimeMillis();			
-			System.out.println("BR:  " + results.toCSV());
-			System.out.println("Time: " + (end_time - init_time) + " ms.");
+			pw = new PrintWriter(new FileWriter(reportFilename, true));
 			
-			init_time = System.currentTimeMillis();
-			ClassicCC classicCC = new ClassicCC(new J48(), chain);
-			classicCC.build(trainData.clone());
-			results = eval.evaluate(classicCC, testData.clone(), trainData.clone());
-			end_time = System.currentTimeMillis();			
-			System.out.println("classicCC:  " + results.toCSV());
-			System.out.println("Time: " + (end_time - init_time) + " ms.");
-			
-			init_time = System.currentTimeMillis();
-			NewCC newCC = new NewCC(new J48(), chain);
-			newCC.build(trainData.clone());			
-			results = eval.evaluate(newCC, testData.clone(), trainData.clone());
-			end_time = System.currentTimeMillis();			
-			System.out.println("newCC: " + results.toCSV());
-			System.out.println("Time: " + (end_time - init_time) + " ms.");
-			
-			init_time = System.currentTimeMillis();
-			ParallelCC pcc = new ParallelCC(new J48(), chain);
-//			pcc.setNumThreads(4);
-			pcc.build(trainData.clone());			
-			results = eval.evaluate(pcc, testData.clone(), trainData.clone());
-			end_time = System.currentTimeMillis();			
-			System.out.println("pCC: " + results.toCSV());
-			System.out.println("Time: " + (end_time - init_time) + " ms.");
-			
-			
-			
-						
-			/*
-			 * TRAINING
-			 */
-			
-			//FOR EACH LABEL
-			//	Filter only corresponding label
-			//	* If there are predictions, include all as input features
-			//	Train BR for corresponding label
-			//	* Save predictions
-			
-			/*
-			 * TESTING
-			 */
-			//FOR EACH LABEL
-			//	* See if all needed predictions have finished
-			//	* Add predictions as input features
-			//	Predict given label
-			//	* Store predictions
-			
-			
-			
+			//For each dataset
+			for(int f=0; f<nFiles; f++) {
+				/*
+				 * Read the dataset
+				 */
+				trainData = new MultiLabelInstances(trainFilenames.get(f), xmlFilenames.get(f));
+				testData = new MultiLabelInstances(testFilenames.get(f), xmlFilenames.get(f));
+				
+				measures = prepareMeasuresClassification(trainData);			
+				
+				main.printHeader(pw, measures, trainData);
+				
+				if(algorithm.equalsIgnoreCase("BR")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						BinaryRelevance br = new BinaryRelevance(new J48());
+						br.build(trainData);
+						results = eval.evaluate(br, testData, measures);
+						end_time = System.currentTimeMillis();
+						main.printResults(pw, results, trainFilenames.get(f), "BR", (end_time - init_time));
+					}
+				}
+				else if(algorithm.equalsIgnoreCase("CC")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						NewCC cc = new NewCC(new J48());
+						cc.setSeed((i+1)*10);
+						cc.build(trainData);
+						results = eval.evaluate(cc, testData, measures);
+						end_time = System.currentTimeMillis();
+						main.printResults(pw, results, trainFilenames.get(f), "CC", (end_time - init_time));
+					}
+				}
+				else if(algorithm.equalsIgnoreCase("PCC")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						ParallelCC pcc = new ParallelCC(new J48());
+						pcc.setNumThreads(numThreads);
+						pcc.setSeed((i+1)*10);
+						pcc.build(trainData);
+						results = eval.evaluate(pcc, testData, measures);
+						end_time = System.currentTimeMillis();
+						main.printResults(pw, results, trainFilenames.get(f), "pCC", (end_time - init_time));
+					}
+				}
+				else {
+					
+				}
+			}		
 			
 		} catch (InvalidDataFormatException e) {
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		finally{
+    		if(pw != null)
+    		{
+    			pw.close();
+    		}
+    	}   
 	}
+	
+	public static void printHeader(PrintWriter pw, List<Measure> measures, MultiLabelInstances mlData) throws Exception{
+		//Print header
+	    pw.print("Dataset" + ";");
+        for(Measure m : measures)
+        {
+        	pw.print(m.getName() + ";");
+        }
+        pw.print("Execution time (ms): ");
+        pw.println();
+	}
+	
+	public static void printResults(PrintWriter pw, Evaluation results, String dataname, String algorithm, long time) throws Exception {
+		String [] p = dataname.split("\\/");
+		String datasetName = p[p.length-1].split("\\.")[0];                   
+       
+		pw.print(algorithm + "_" + datasetName + ";");
+    	for(Measure m : results.getMeasures())
+        {
+        	pw.print(m.getValue() + ";");
+        }
+        pw.print(time + ";");
+        pw.println();  
+	}
+	
+	protected static List<Measure> prepareMeasuresClassification(MultiLabelInstances mlTrainData) {
+        List<Measure> measures = new ArrayList<Measure>();
+
+        int numOfLabels = mlTrainData.getNumLabels();
+        
+        // add example-based measures
+        measures.add(new HammingLoss());
+        measures.add(new SubsetAccuracy());
+        measures.add(new ExampleBasedPrecision());
+        measures.add(new ExampleBasedRecall());
+        measures.add(new ExampleBasedFMeasure());
+        measures.add(new ExampleBasedAccuracy());
+        measures.add(new ExampleBasedSpecificity());
+        
+        // add label-based measures
+        measures.add(new MicroPrecision(numOfLabels));
+        measures.add(new MicroRecall(numOfLabels));
+        measures.add(new MicroFMeasure(numOfLabels));
+        measures.add(new MicroSpecificity(numOfLabels));
+        measures.add(new MacroPrecision(numOfLabels));
+        measures.add(new MacroRecall(numOfLabels));
+        measures.add(new MacroFMeasure(numOfLabels));
+        measures.add(new MacroSpecificity(numOfLabels));
+        
+        // add ranking based measures
+        measures.add(new AveragePrecision());
+        measures.add(new Coverage());
+        measures.add(new OneError());
+        measures.add(new IsError());
+        measures.add(new ErrorSetSize());
+        measures.add(new RankingLoss());
+        
+        // add confidence measures if applicable
+        measures.add(new MeanAveragePrecision(numOfLabels));
+        measures.add(new GeometricMeanAveragePrecision(numOfLabels));
+//        measures.add(new MicroAUC(numOfLabels));
+//        measures.add(new MacroAUC(numOfLabels));
+
+        return measures;
+    }
 }
