@@ -93,7 +93,9 @@ public class NewCC extends ClassicCC {
      * It takes the basis to be able to make it parallelizable
      */
     protected void buildInternal(MultiLabelInstances train) throws Exception {
-        //Create RANDOM chain if it does not exists
+        long time_init = System.currentTimeMillis();
+    	
+    	//Create RANDOM chain if it does not exists
     	if (chain == null) {
             chain = randomChain(seed);
         }
@@ -149,6 +151,8 @@ public class NewCC extends ClassicCC {
             }
             trained[chain[i]] = 1;
         }
+        
+        timeBuild = System.currentTimeMillis() - time_init;
     }
     
     /**

@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import mulan.classifier.transformation.BinaryRelevance;
+import mulan.classifier.transformation.BR;
 import mulan.data.InvalidDataFormatException;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
@@ -109,11 +109,11 @@ public class main {
 				if(algorithm.equalsIgnoreCase("BR")) {
 					for(int i=0; i<numSeeds; i++) {
 						init_time = System.currentTimeMillis();
-						BinaryRelevance br = new BinaryRelevance(new J48());
+						BR br = new BR(new J48());
 						br.build(trainData);
 						results = eval.evaluate(br, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "BR", (end_time - init_time));
+						main.printResults(pw, results, trainFilenames.get(f), "BR", (end_time - init_time), br.getBuildingTime());
 					}
 				}
 				else if(algorithm.equalsIgnoreCase("CC")) {
@@ -124,7 +124,7 @@ public class main {
 						cc.build(trainData);
 						results = eval.evaluate(cc, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "CC", (end_time - init_time));
+						main.printResults(pw, results, trainFilenames.get(f), "CC", (end_time - init_time), cc.getBuildingTime());
 					}
 				}
 				else if(algorithm.equalsIgnoreCase("PCC")) {
@@ -136,7 +136,7 @@ public class main {
 						pcc.build(trainData);
 						results = eval.evaluate(pcc, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "pCC_" + numThreads, (end_time - init_time));
+						main.printResults(pw, results, trainFilenames.get(f), "pCC_" + numThreads, (end_time - init_time), pcc.getBuildingTime());
 					}
 				}
 				else {
@@ -164,11 +164,11 @@ public class main {
         {
         	pw.print(m.getName() + ";");
         }
-        pw.print("Execution time (ms): ");
+        pw.print("Execution time (ms)" + ";" + "Building time (ms)");
         pw.println();
 	}
 	
-	public static void printResults(PrintWriter pw, Evaluation results, String dataname, String algorithm, long time) throws Exception {
+	public static void printResults(PrintWriter pw, Evaluation results, String dataname, String algorithm, long runtime, long buildTime) throws Exception {
 		String [] p = dataname.split("\\/");
 		String datasetName = p[p.length-1].split("\\.")[0];                   
        
@@ -177,7 +177,7 @@ public class main {
         {
         	pw.print(m.getValue() + ";");
         }
-        pw.print(time + ";");
+        pw.print(runtime + ";" + buildTime);
         pw.println();  
 	}
 	

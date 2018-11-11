@@ -58,6 +58,11 @@ public class ClassicCC extends TransformationBasedMultiLabelLearner {
      * Seed for random numbers
      */
     protected long seed = 1;
+    
+    /**
+     * Stores time needed to build the model (ms)
+     */
+    protected long timeBuild;
 
     /**
      * Creates a new instance using J48 as the underlying classifier
@@ -96,8 +101,17 @@ public class ClassicCC extends TransformationBasedMultiLabelLearner {
     public void setSeed(long seed) {
     	this.seed = seed;
     }
+    
+    /**
+     * Get building time
+     */
+    public long getBuildingTime() {
+    	return timeBuild;
+    }
 
     protected void buildInternal(MultiLabelInstances train) throws Exception {
+    	long time_init = System.currentTimeMillis();
+    	
     	//Create RANDOM chain if it does not exists
     	if (chain == null) {
             chain = randomChain(seed);
@@ -132,6 +146,8 @@ public class ClassicCC extends TransformationBasedMultiLabelLearner {
             debug("Bulding model " + (i + 1) + "/" + numLabels);
             ensemble[i].buildClassifier(trainDataset);
         }
+        
+        timeBuild = System.currentTimeMillis() - time_init;
     }
 
     protected MultiLabelOutput makePredictionInternal(Instance instance) throws Exception {

@@ -87,7 +87,9 @@ public class ParallelCC extends NewCC {
     }    
 
     protected void buildInternal(MultiLabelInstances train) throws Exception {
-        //Create chain if it does not exists
+        long time_init = System.currentTimeMillis();
+    	
+    	//Create chain if it does not exists
     	//Create RANDOM chain if it does not exists
     	if (chain == null) {
             chain = randomChain(seed);
@@ -118,6 +120,8 @@ public class ParallelCC extends NewCC {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		timeBuild = System.currentTimeMillis() - time_init;
     }
     
     /**
