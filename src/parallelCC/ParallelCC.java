@@ -112,11 +112,11 @@ public class ParallelCC extends NewCC {
         	executorService.execute(new BuildClassifierParallel(i, trainDataset, labelIndices, chain,
     				ensemble, baseClassifier, trained, usePredictions, lock));
         }
-        
         executorService.shutdown();
         
 		try {
-			executorService.awaitTermination(5, TimeUnit.SECONDS);
+			//Wait until all threads finish
+			executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
