@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mulan.classifier.transformation.BR;
+import mulan.classifier.transformation.ECC;
 import mulan.data.InvalidDataFormatException;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
@@ -37,6 +38,7 @@ import mulan.evaluation.measure.RankingLoss;
 import mulan.evaluation.measure.SubsetAccuracy;
 import parallelCC.NewCC;
 import parallelCC.ParallelCC;
+import parallelCC.ParallelECC;
 import weka.classifiers.trees.J48;
 import weka.core.Utils;
 
@@ -139,8 +141,31 @@ public class main {
 						main.printResults(pw, results, trainFilenames.get(f), "pCC_" + numThreads, (end_time - init_time), pcc.getBuildingTime());
 					}
 				}
+				else if(algorithm.equalsIgnoreCase("ECC")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						ECC ecc = new ECC();
+						ecc.setSeed((i+1)*10);
+						ecc.build(trainData);
+						results = eval.evaluate(ecc, testData, measures);
+						end_time = System.currentTimeMillis();
+						main.printResults(pw, results, trainFilenames.get(f), "ECC", (end_time - init_time), ecc.getBuildingTime());
+					}
+				}
+				else if(algorithm.equalsIgnoreCase("PECC")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						ParallelECC pecc = new ParallelECC();
+						pecc.setNumThreads(numThreads);
+						pecc.setSeed((i+1)*10);
+						pecc.build(trainData);
+						results = eval.evaluate(pecc, testData, measures);
+						end_time = System.currentTimeMillis();
+						main.printResults(pw, results, trainFilenames.get(f), "PECC", (end_time - init_time), pecc.getBuildingTime());
+					}
+				}
 				else {
-					
+					System.out.println("Algorithm not defined.");
 				}
 			}		
 			
