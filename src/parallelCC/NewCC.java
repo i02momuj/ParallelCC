@@ -16,7 +16,6 @@
 package parallelCC;
 
 import java.util.ArrayList;
-import java.util.Random;
 
 import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.transformation.ClassicCC;
@@ -37,11 +36,16 @@ import weka.filters.unsupervised.attribute.Remove;
  * For mor information, see <em></em>
  *
  * @author Jose M. Moyano
- * @version 2018.11.27
+ * @version 2018.11.16
  */
 public class NewCC extends ClassicCC {
   
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = 7419132463415277030L;
+
+	/**
      * Indicates if a given label has been trained yet or not
      */
     byte [] trained;

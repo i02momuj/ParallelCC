@@ -17,10 +17,15 @@ package parallelCC;
 
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import mulan.classifier.InvalidDataException;
 import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.transformation.TransformationBasedMultiLabelLearner;
 import mulan.data.MultiLabelInstances;
+import parallelCC.NewCC;
 import weka.classifiers.Classifier;
 import weka.classifiers.trees.J48;
 import weka.core.Instance;
@@ -29,40 +34,47 @@ import weka.filters.Filter;
 import weka.filters.unsupervised.instance.RemovePercentage;
 
 /**
- * <p>Implementation of the Ensemble of Classifier Chains(ECC) algorithm.</p>
- * <p>For more information, see <em>Read, J.; Pfahringer, B.; Holmes, G., Frank,
- * E. (2011) Classifier Chains for Multi-label Classification. Machine Learning.
- * 85(3):335-359.</em></p>
+ * Parallel implementation of the Ensemble of Classifier Chain (PECC) algorithm.
+ * It works as ECC but each member of the ensemble is built in parallel.
+ * For mor information, see <em></em>
  *
- * @author Eleftherios Spyromitros-Xioufis
- * @author Konstantinos Sechidis
- * @author Grigorios Tsoumakas
- * @version 2012.02.27
+ * @author Jose M. Moyano
+ * @version 2018.11.16
  */
-public class ParallelECC extends TransformationBasedMultiLabelLearner {
+public class PECC extends TransformationBasedMultiLabelLearner {
 
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = 6761308845058533229L;
+	
+	/**
      * The number of classifier chain models
      */
     protected int numOfModels;
+    
     /**
      * An array of ClassifierChain models
      */
-    protected ParallelCC[] ensemble;
+    protected NewCC[] ensemble;
+    
     /**
      * Random number generator
      */
     protected Random rand;
+    
     /**
      * Whether the output is computed based on the average votes or on the
      * average confidences
      */
     protected boolean useConfidences;
+    
     /**
      * Whether to use sampling with replacement to create the data of the models
      * of the ensemble
      */
     protected boolean useSamplingWithReplacement = true;
+    
     /**
      * The size of each bag sample, as a percentage of the training size. Used
      * when useSamplingWithReplacement is true
@@ -116,20 +128,19 @@ public class ParallelECC extends TransformationBasedMultiLabelLearner {
     public void setSamplingPercentage(double samplingPercentage) {
         this.samplingPercentage = samplingPercentage;
     }
+    
     /**
      * The size of each sample, as a percentage of the training size Used when
      * useSamplingWithReplacement is false
      */
     protected double samplingPercentage = 67;
     
-    public void setNumThreads(int numThreads) {
-    	this.numThreads = numThreads;
-    }   
+    
 
     /**
      * Default constructor
      */
-    public ParallelECC() {
+    public PECC() {
         this(new J48(), 10, true, true);
     }
 
@@ -141,16 +152,16 @@ public class ParallelECC extends TransformationBasedMultiLabelLearner {
      * @param doUseConfidences whether to use confidences or not
      * @param doUseSamplingWithReplacement whether to use sampling with replacement or not 
      */
-    public ParallelECC(Classifier classifier, int aNumOfModels,
+    public PECC(Classifier classifier, int aNumOfModels,
             boolean doUseConfidences, boolean doUseSamplingWithReplacement) {
         super(classifier);
         numOfModels = aNumOfModels;
         useConfidences = doUseConfidences;
         useSamplingWithReplacement = doUseSamplingWithReplacement;
-        ensemble = new ParallelCC[aNumOfModels];
+        ensemble = new NewCC[aNumOfModels];
         rand = new Random(1);
     }
-
+    
     /**
      * Set seed for random numbers
      * 
@@ -158,8 +169,8 @@ public class ParallelECC extends TransformationBasedMultiLabelLearner {
      */
     public void setSeed(long seed) {
     	rand = new Random(seed);
-    }    
-    
+    }
+
     /**
      * Get building time
      */
@@ -167,53 +178,38 @@ public class ParallelECC extends TransformationBasedMultiLabelLearner {
     	return timeBuild;
     }
     
+    /**
+     * Set number of threads
+     * 
+     * @param numThreads Number of threads
+     */
+    public void setNumThreads(int numThreads) {
+    	this.numThreads = numThreads;
+    }    
+    
     @Override
     protected void buildInternal(MultiLabelInstances trainingSet) throws Exception {
     	long time_init = System.currentTimeMillis();
     	
         Instances dataSet = new Instances(trainingSet.getDataSet());
 
+        //Set number of threads
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        
+        //Build each member in a different thread
         for (int i = 0; i < numOfModels; i++) {
-            debug("ECC Building Model:" + (i + 1) + "/" + numOfModels);
-            Instances sampledDataSet;
-            dataSet.randomize(rand);
-            if (useSamplingWithReplacement) {
-                int bagSize = dataSet.numInstances() * BagSizePercent / 100;
-                // create the in-bag dataset
-                sampledDataSet = dataSet.resampleWithWeights(rand);
-                if (bagSize < dataSet.numInstances()) {
-                    sampledDataSet = new Instances(sampledDataSet, 0, bagSize);
-                }
-            } else {
-                RemovePercentage rmvp = new RemovePercentage();
-                rmvp.setInvertSelection(true);
-                rmvp.setPercentage(samplingPercentage);
-                rmvp.setInputFormat(dataSet);
-                sampledDataSet = Filter.useFilter(dataSet, rmvp);
-            }
-            MultiLabelInstances train = new MultiLabelInstances(sampledDataSet, trainingSet.getLabelsMetaData());
-
-            int[] chain = new int[numLabels];
-            for (int j = 0; j < numLabels; j++) {
-                chain[j] = j;
-            }
-            for (int j = 0; j < chain.length; j++) {
-                int randomPosition = rand.nextInt(chain.length);
-                int temp = chain[j];
-                chain[j] = chain[randomPosition];
-                chain[randomPosition] = temp;
-            }
-            debug(Arrays.toString(chain));
-
-            // MAYBE WE SHOULD CHECK NOT TO PRODUCE THE SAME VECTOR FOR THE
-            // INDICES
-            // BUT IN THE PAPER IT DID NOT MENTION SOMETHING LIKE THAT
-            // IT JUST SIMPLY SAY A RANDOM CHAIN ORDERING OF L
-
-            ensemble[i] = new ParallelCC(baseClassifier, chain);
-            ensemble[i].setNumThreads(numThreads);
-            ensemble[i].build(train);
+            executorService.execute(new BuildEnsembleParallel(numOfModels, dataSet, rand, useSamplingWithReplacement, 
+            		BagSizePercent,  samplingPercentage, numLabels, ensemble, trainingSet, baseClassifier, i));
         }
+        
+        executorService.shutdown();
+        
+        try {
+			//Wait until all threads finish
+			executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
         timeBuild = System.currentTimeMillis() - time_init;
     }
@@ -251,4 +247,97 @@ public class ParallelECC extends TransformationBasedMultiLabelLearner {
         MultiLabelOutput mlo = new MultiLabelOutput(confidence, 0.5);
         return mlo;
     }
+    
+    
+    /**
+     * Class that extends Thread, for code that is executed in parallel
+     * 
+     * @author Jose M. Moyano
+     */
+    public static class BuildEnsembleParallel extends Thread {
+
+    	int numOfModels;
+    	
+    	Instances dataSet;
+    	
+    	Random rand;
+    	
+    	boolean useSamplingWithReplacement;
+    	
+    	int BagSizePercent;
+    	
+    	double samplingPercentage;
+    	
+    	int numLabels;
+    	
+    	protected NewCC[] ensemble;
+    	
+    	MultiLabelInstances trainingSet;
+    	
+    	Classifier baseClassifier;
+    	
+    	int i;
+    	
+		/**
+		 * Constructor
+		 */
+		BuildEnsembleParallel(int numOfModels, Instances dataSet, Random rand, boolean useSamplingWithReplacement, 
+				int BagSizePercent, double samplingPercentage, int numLabels, NewCC[] ensemble, 
+				MultiLabelInstances trainingSet, Classifier baseClassifier, int i){
+			this.numOfModels = numOfModels;
+			this.dataSet = dataSet;
+			this.rand = rand;
+			this.useSamplingWithReplacement = useSamplingWithReplacement;
+			this.BagSizePercent = BagSizePercent;
+			this.samplingPercentage = samplingPercentage;
+			this.numLabels = numLabels;
+			this.ensemble = ensemble;
+			this.trainingSet = trainingSet;
+			this.baseClassifier = baseClassifier;
+			this.i = i;
+		}
+		
+		/**
+		 * Override run method for parallel execution.
+		 * It is in charge of building each different CC in parallel.
+		 * It has not critical code.
+		 */
+		public void run() {
+			try {
+	            Instances sampledDataSet;
+	            dataSet.randomize(rand);
+	            if (useSamplingWithReplacement) {
+	                int bagSize = dataSet.numInstances() * BagSizePercent / 100;
+	                // create the in-bag dataset
+	                sampledDataSet = dataSet.resampleWithWeights(rand);
+	                if (bagSize < dataSet.numInstances()) {
+	                    sampledDataSet = new Instances(sampledDataSet, 0, bagSize);
+	                }
+	            } else {
+	                RemovePercentage rmvp = new RemovePercentage();
+	                rmvp.setInvertSelection(true);
+	                rmvp.setPercentage(samplingPercentage);
+	                rmvp.setInputFormat(dataSet);
+	                sampledDataSet = Filter.useFilter(dataSet, rmvp);
+	            }
+	            MultiLabelInstances train = new MultiLabelInstances(sampledDataSet, trainingSet.getLabelsMetaData());
+
+	            int[] chain = new int[numLabels];
+	            for (int j = 0; j < numLabels; j++) {
+	                chain[j] = j;
+	            }
+	            for (int j = 0; j < chain.length; j++) {
+	                int randomPosition = rand.nextInt(chain.length);
+	                int temp = chain[j];
+	                chain[j] = chain[randomPosition];
+	                chain[randomPosition] = temp;
+	            }
+
+	            ensemble[i] = new NewCC(baseClassifier, chain);
+	            ensemble[i].build(train);
+			}catch(Exception e) {
+			e.printStackTrace();	
+			}
+		}
+	}
 }

@@ -37,12 +37,14 @@ import mulan.evaluation.measure.OneError;
 import mulan.evaluation.measure.RankingLoss;
 import mulan.evaluation.measure.SubsetAccuracy;
 import parallelCC.NewCC;
+import parallelCC.PECC;
+import parallelCC.PEPCC;
 import parallelCC.ParallelCC;
-import parallelCC.ParallelECC;
+import parallelCC.EPCC;
 import weka.classifiers.trees.J48;
 import weka.core.Utils;
 
-public class main {
+public class MainClass {
 	
 	/**
 	 * Arguments to main method are:
@@ -106,7 +108,7 @@ public class main {
 				
 				measures = prepareMeasuresClassification(trainData);			
 				
-				main.printHeader(pw, measures, trainData);
+				MainClass.printHeader(pw, measures, trainData);
 				
 				if(algorithm.equalsIgnoreCase("BR")) {
 					for(int i=0; i<numSeeds; i++) {
@@ -115,7 +117,7 @@ public class main {
 						br.build(trainData);
 						results = eval.evaluate(br, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "BR", (end_time - init_time), br.getBuildingTime());
+						MainClass.printResults(pw, results, trainFilenames.get(f), "BR", (end_time - init_time), br.getBuildingTime());
 					}
 				}
 				else if(algorithm.equalsIgnoreCase("CC")) {
@@ -126,7 +128,7 @@ public class main {
 						cc.build(trainData);
 						results = eval.evaluate(cc, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "CC", (end_time - init_time), cc.getBuildingTime());
+						MainClass.printResults(pw, results, trainFilenames.get(f), "CC", (end_time - init_time), cc.getBuildingTime());
 					}
 				}
 				else if(algorithm.equalsIgnoreCase("PCC")) {
@@ -138,7 +140,7 @@ public class main {
 						pcc.build(trainData);
 						results = eval.evaluate(pcc, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "pCC_" + numThreads, (end_time - init_time), pcc.getBuildingTime());
+						MainClass.printResults(pw, results, trainFilenames.get(f), "pCC_" + numThreads, (end_time - init_time), pcc.getBuildingTime());
 					}
 				}
 				else if(algorithm.equalsIgnoreCase("ECC")) {
@@ -149,19 +151,43 @@ public class main {
 						ecc.build(trainData);
 						results = eval.evaluate(ecc, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "ECC", (end_time - init_time), ecc.getBuildingTime());
+						MainClass.printResults(pw, results, trainFilenames.get(f), "ECC", (end_time - init_time), ecc.getBuildingTime());
+					}
+				}
+				else if(algorithm.equalsIgnoreCase("EPCC")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						EPCC epcc = new EPCC();
+						epcc.setNumThreads(numThreads);
+						epcc.setSeed((i+1)*10);
+						epcc.build(trainData);
+						results = eval.evaluate(epcc, testData, measures);
+						end_time = System.currentTimeMillis();
+						MainClass.printResults(pw, results, trainFilenames.get(f), "EPCC", (end_time - init_time), epcc.getBuildingTime());
 					}
 				}
 				else if(algorithm.equalsIgnoreCase("PECC")) {
 					for(int i=0; i<numSeeds; i++) {
 						init_time = System.currentTimeMillis();
-						ParallelECC pecc = new ParallelECC();
+						PECC pecc = new PECC();
 						pecc.setNumThreads(numThreads);
 						pecc.setSeed((i+1)*10);
 						pecc.build(trainData);
 						results = eval.evaluate(pecc, testData, measures);
 						end_time = System.currentTimeMillis();
-						main.printResults(pw, results, trainFilenames.get(f), "PECC", (end_time - init_time), pecc.getBuildingTime());
+						MainClass.printResults(pw, results, trainFilenames.get(f), "PECC", (end_time - init_time), pecc.getBuildingTime());
+					}
+				}
+				else if(algorithm.equalsIgnoreCase("PEPCC")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						PEPCC pepcc = new PEPCC();
+						pepcc.setNumThreads(numThreads);
+						pepcc.setSeed((i+1)*10);
+						pepcc.build(trainData);
+						results = eval.evaluate(pepcc, testData, measures);
+						end_time = System.currentTimeMillis();
+						MainClass.printResults(pw, results, trainFilenames.get(f), "PEPCC", (end_time - init_time), pepcc.getBuildingTime());
 					}
 				}
 				else {

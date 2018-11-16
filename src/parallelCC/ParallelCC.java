@@ -41,11 +41,16 @@ import weka.filters.unsupervised.attribute.Remove;
  * For mor information, see <em></em>
  *
  * @author Jose M. Moyano
- * @version 2018.11.27
+ * @version 2018.11.16
  */
 public class ParallelCC extends NewCC {	
     
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = 3738617818728999467L;
+
+	/**
      * Number of threads to execute PCC in parallel
      * By default, it obtains all available processors
      */
