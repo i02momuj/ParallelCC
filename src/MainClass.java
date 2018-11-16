@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mulan.classifier.transformation.BR;
+import mulan.classifier.transformation.EBR;
 import mulan.classifier.transformation.ECC;
 import mulan.data.InvalidDataFormatException;
 import mulan.data.MultiLabelInstances;
@@ -37,6 +38,7 @@ import mulan.evaluation.measure.OneError;
 import mulan.evaluation.measure.RankingLoss;
 import mulan.evaluation.measure.SubsetAccuracy;
 import parallelCC.NewCC;
+import parallelCC.PEBR;
 import parallelCC.PECC;
 import parallelCC.PEPCC;
 import parallelCC.ParallelCC;
@@ -141,6 +143,29 @@ public class MainClass {
 						results = eval.evaluate(pcc, testData, measures);
 						end_time = System.currentTimeMillis();
 						MainClass.printResults(pw, results, trainFilenames.get(f), "pCC_" + numThreads, (end_time - init_time), pcc.getBuildingTime());
+					}
+				}
+				else if(algorithm.equalsIgnoreCase("EBR")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						EBR ebr = new EBR();
+						ebr.setSeed((i+1)*10);
+						ebr.build(trainData);
+						results = eval.evaluate(ebr, testData, measures);
+						end_time = System.currentTimeMillis();
+						MainClass.printResults(pw, results, trainFilenames.get(f), "EBR", (end_time - init_time), ebr.getBuildingTime());
+					}
+				}
+				else if(algorithm.equalsIgnoreCase("PEBR")) {
+					for(int i=0; i<numSeeds; i++) {
+						init_time = System.currentTimeMillis();
+						PEBR pebr = new PEBR();
+						pebr.setNumThreads(numThreads);
+						pebr.setSeed((i+1)*10);
+						pebr.build(trainData);
+						results = eval.evaluate(pebr, testData, measures);
+						end_time = System.currentTimeMillis();
+						MainClass.printResults(pw, results, trainFilenames.get(f), "PEBR", (end_time - init_time), pebr.getBuildingTime());
 					}
 				}
 				else if(algorithm.equalsIgnoreCase("ECC")) {
