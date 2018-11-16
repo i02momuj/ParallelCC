@@ -15,19 +15,14 @@
  */
 package parallelCC;
 
-import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import mulan.classifier.InvalidDataException;
-import mulan.classifier.MultiLabelOutput;
-import mulan.classifier.transformation.TransformationBasedMultiLabelLearner;
 import mulan.data.MultiLabelInstances;
 import weka.classifiers.Classifier;
 import weka.classifiers.trees.J48;
-import weka.core.Instance;
 import weka.core.Instances;
 import weka.filters.Filter;
 import weka.filters.unsupervised.instance.RemovePercentage;
@@ -40,100 +35,12 @@ import weka.filters.unsupervised.instance.RemovePercentage;
  * @author Jose M. Moyano
  * @version 2018.11.16
  */
-public class PEPCC extends TransformationBasedMultiLabelLearner {
+public class PEPCC extends EPCC {
 
     /**
 	 * 
 	 */
 	private static final long serialVersionUID = 6713525906907893794L;
-	
-	/**
-     * The number of classifier chain models
-     */
-    protected int numOfModels;
-    
-    /**
-     * An array of ClassifierChain models
-     */
-    protected ParallelCC[] ensemble;
-    
-    /**
-     * Random number generator
-     */
-    protected Random rand;
-    
-    /**
-     * Whether the output is computed based on the average votes or on the
-     * average confidences
-     */
-    protected boolean useConfidences;
-    
-    /**
-     * Whether to use sampling with replacement to create the data of the models
-     * of the ensemble
-     */
-    protected boolean useSamplingWithReplacement = true;
-    
-    /**
-     * The size of each bag sample, as a percentage of the training size. Used
-     * when useSamplingWithReplacement is true
-     */
-    protected int BagSizePercent = 100;
-    
-    /**
-     * Stores time needed to build the model (ms)
-     */
-    protected long timeBuild;
-    
-    /**
-     * Number of threads to execute PCC in parallel
-     * By default, it obtains all available processors
-     */
-    int numThreads = Runtime.getRuntime().availableProcessors();
-
-    /**
-     * Returns the size of each bag sample, as a percentage of the training size
-     *
-     * @return the size of each bag sample, as a percentage of the training size
-     */
-    public int getBagSizePercent() {
-        return BagSizePercent;
-    }
-
-    /**
-     * Sets the size of each bag sample, as a percentage of the training size
-     *
-     * @param bagSizePercent the size of each bag sample, as a percentage of the
-     * training size
-     */
-    public void setBagSizePercent(int bagSizePercent) {
-        BagSizePercent = bagSizePercent;
-    }
-
-    /**
-     * Returns the sampling percentage
-     *
-     * @return the sampling percentage
-     */
-    public double getSamplingPercentage() {
-        return samplingPercentage;
-    }
-
-    /**
-     * Sets the sampling percentage
-     *
-     * @param samplingPercentage the sampling percentage
-     */
-    public void setSamplingPercentage(double samplingPercentage) {
-        this.samplingPercentage = samplingPercentage;
-    }
-    /**
-     * The size of each sample, as a percentage of the training size Used when
-     * useSamplingWithReplacement is false
-     */
-    protected double samplingPercentage = 67;
-    
-    
 
     /**
      * Default constructor
@@ -152,38 +59,9 @@ public class PEPCC extends TransformationBasedMultiLabelLearner {
      */
     public PEPCC(Classifier classifier, int aNumOfModels,
             boolean doUseConfidences, boolean doUseSamplingWithReplacement) {
-        super(classifier);
-        numOfModels = aNumOfModels;
-        useConfidences = doUseConfidences;
-        useSamplingWithReplacement = doUseSamplingWithReplacement;
-        ensemble = new ParallelCC[aNumOfModels];
-        rand = new Random(1);
-    }
-    
-    /**
-     * Set seed for random numbers
-     * 
-     * @param seed Seed for random numbers
-     */
-    public void setSeed(long seed) {
-    	rand = new Random(seed);
+        super(classifier, aNumOfModels, doUseConfidences, doUseSamplingWithReplacement);
     }
 
-    /**
-     * Get building time
-     */
-    public long getBuildingTime() {
-    	return timeBuild;
-    }
-    
-    /**
-     * Sets the number of threads
-     * 
-     * @param numThreads Number of threads
-     */
-    public void setNumThreads(int numThreads) {
-    	this.numThreads = numThreads;
-    }    
     
     @Override
     protected void buildInternal(MultiLabelInstances trainingSet) throws Exception {
@@ -212,41 +90,6 @@ public class PEPCC extends TransformationBasedMultiLabelLearner {
 
         timeBuild = System.currentTimeMillis() - time_init;
     }
-
-    @Override
-    protected MultiLabelOutput makePredictionInternal(Instance instance) throws Exception,
-            InvalidDataException {
-
-        int[] sumVotes = new int[numLabels];
-        double[] sumConf = new double[numLabels];
-
-        Arrays.fill(sumVotes, 0);
-        Arrays.fill(sumConf, 0);
-
-        for (int i = 0; i < numOfModels; i++) {
-            MultiLabelOutput ensembleMLO = ensemble[i].makePrediction(instance);
-            boolean[] bip = ensembleMLO.getBipartition();
-            double[] conf = ensembleMLO.getConfidences();
-
-            for (int j = 0; j < numLabels; j++) {
-                sumVotes[j] += bip[j] == true ? 1 : 0;
-                sumConf[j] += conf[j];
-            }
-        }
-
-        double[] confidence = new double[numLabels];
-        for (int j = 0; j < numLabels; j++) {
-            if (useConfidences) {
-                confidence[j] = sumConf[j] / numOfModels;
-            } else {
-                confidence[j] = sumVotes[j] / (double) numOfModels;
-            }
-        }
-
-        MultiLabelOutput mlo = new MultiLabelOutput(confidence, 0.5);
-        return mlo;
-    }
-    
     
     /**
      * Class that extends Thread, for code that is executed in parallel
