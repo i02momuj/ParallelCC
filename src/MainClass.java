@@ -38,15 +38,33 @@ import mulan.evaluation.measure.OneError;
 import mulan.evaluation.measure.RankingLoss;
 import mulan.evaluation.measure.SubsetAccuracy;
 import parallelCC.NewCC;
-import parallelCC.PEBR;
-import parallelCC.PECC;
-import parallelCC.PEPCC;
 import parallelCC.ParallelCC;
-import parallelCC.EPCC;
+import parallelCC.ensemble.EPCC;
+import parallelCC.ensemble.PEBR;
+import parallelCC.ensemble.PECC;
+import parallelCC.ensemble.PEPCC;
 import weka.classifiers.trees.J48;
 import weka.core.Utils;
 
 public class MainClass {
+	
+	public static void showUse()
+	{
+		System.out.println("Parameters:");
+		
+		System.out.println("\t -d Path of the file including paths to datasets.");
+		System.out.println("\t -t Number of threads. If 0, all available threads.");
+		System.out.println("\t -s Number of different seeds for random numbers.");
+		System.out.println("\t -o Filename for reports.");
+		System.out.println("\t -a Algorithm to execute:");
+		System.out.println("\t\tBR: Binary Relevance");
+		System.out.println("\t\tCC: Classifier Chains");
+		System.out.println("\t\tPCC: Parallel Classifier Chains");
+		System.out.println("\t\tEBR: Ensebmle of Binary Relevance");
+		System.out.println("\t\tPEBR: Parallel Ensemble of Binary Relevance");
+		System.out.println("\t\tECC: Ensemble of Classifier Chains");
+		System.out.println("\t\tEPCC: Ensemble of Parallel Classifier Chains");
+	}
 	
 	/**
 	 * Arguments to main method are:
@@ -65,18 +83,32 @@ public class MainClass {
 		ArrayList<String> testFilenames = new ArrayList<String>();
 		ArrayList<String> xmlFilenames = new ArrayList<String>();
 		
+		String dataFilenames=null , reportFilename=null, algorithm=null;
+		int numThreads=0, numSeeds=0;
+		
 		try {
-			String dataFilenames = Utils.getOption("d", args);
+			dataFilenames = Utils.getOption("d", args);
 			
-			int numThreads = Integer.parseInt(Utils.getOption("t", args));
+			String nT = Utils.getOption("t", args);
+			if (nT.length() > 0) {
+				numThreads = Integer.parseInt(nT);
+			}
+			//else, it is 0
+			
 			if(numThreads < 1) {
 				numThreads = Runtime.getRuntime().availableProcessors();
 			}
+		
+			reportFilename = Utils.getOption("o", args);
+			numSeeds = Integer.parseInt(Utils.getOption("s", args));
+			algorithm = Utils.getOption("a", args);
+		}
+		catch(Exception e) {
+			showUse();
+			System.exit(1);
+		}
 			
-			String reportFilename = Utils.getOption("o", args);
-			int numSeeds = Integer.parseInt(Utils.getOption("s", args));
-			String algorithm = Utils.getOption("a", args);
-			
+		try {
 			//Read filenames
 			BufferedReader b = null;		
 			b = new BufferedReader(new FileReader(new File(dataFilenames)));
@@ -230,7 +262,9 @@ public class MainClass {
     		{
     			pw.close();
     		}
-    	}   
+    	}
+		
+		System.out.println("Finished.");
 	}
 	
 	public static void printHeader(PrintWriter pw, List<Measure> measures, MultiLabelInstances mlData) throws Exception{

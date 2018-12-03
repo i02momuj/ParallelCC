@@ -13,16 +13,15 @@
  *    along with this program; if not, write to the Free Software
  *    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-package parallelCC;
+package parallelCC.ensemble;
 
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import mulan.classifier.transformation.ECC;
 import mulan.data.MultiLabelInstances;
-import parallelCC.NewCC;
+import parallelCC.ParallelCC;
 import weka.classifiers.Classifier;
 import weka.classifiers.trees.J48;
 import weka.core.Instances;
@@ -30,30 +29,24 @@ import weka.filters.Filter;
 import weka.filters.unsupervised.instance.RemovePercentage;
 
 /**
- * Parallel implementation of the Ensemble of Classifier Chain (PECC) algorithm.
- * It works as ECC but each member of the ensemble is built in parallel.
+ * Parallel implementation of Ensemble of Parallel Classifier Chains (PEPCC).
+ * Not only the members of the ensemble are PCCs, but also each member of the ensemble is able to be built in parallel.
  * For mor information, see <em></em>
  *
  * @author Jose M. Moyano
  * @version 2018.11.16
  */
-public class PECC extends ECC {
+public class PEPCC extends EPCC {
 
     /**
 	 * 
 	 */
-	private static final long serialVersionUID = 6761308845058533229L;
-	
-    /**
-     * Number of threads to execute PCC in parallel
-     * By default, it obtains all available processors
-     */
-    int numThreads = Runtime.getRuntime().availableProcessors();
+	private static final long serialVersionUID = 6713525906907893794L;
 
     /**
      * Default constructor
      */
-    public PECC() {
+    public PEPCC() {
         this(new J48(), 10, true, true);
     }
 
@@ -65,19 +58,11 @@ public class PECC extends ECC {
      * @param doUseConfidences whether to use confidences or not
      * @param doUseSamplingWithReplacement whether to use sampling with replacement or not 
      */
-    public PECC(Classifier classifier, int aNumOfModels,
+    public PEPCC(Classifier classifier, int aNumOfModels,
             boolean doUseConfidences, boolean doUseSamplingWithReplacement) {
         super(classifier, aNumOfModels, doUseConfidences, doUseSamplingWithReplacement);
     }
-        
-    /**
-     * Set number of threads
-     * 
-     * @param numThreads Number of threads
-     */
-    public void setNumThreads(int numThreads) {
-    	this.numThreads = numThreads;
-    }    
+
     
     @Override
     protected void buildInternal(MultiLabelInstances trainingSet) throws Exception {
@@ -88,10 +73,11 @@ public class PECC extends ECC {
         //Set number of threads
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         
-        //Build each member in a different thread
+        //Build each member in parallel
         for (int i = 0; i < numOfModels; i++) {
             executorService.execute(new BuildEnsembleParallel(numOfModels, dataSet, rand, useSamplingWithReplacement, 
-            		BagSizePercent,  samplingPercentage, numLabels, ensemble, trainingSet, baseClassifier, i));
+            		BagSizePercent,  samplingPercentage, numLabels, ensemble, trainingSet, baseClassifier, i, 
+            		numThreads));
         }
         
         executorService.shutdown();
@@ -105,7 +91,6 @@ public class PECC extends ECC {
 
         timeBuild = System.currentTimeMillis() - time_init;
     }
-
     
     /**
      * Class that extends Thread, for code that is executed in parallel
@@ -128,7 +113,7 @@ public class PECC extends ECC {
     	
     	int numLabels;
     	
-    	protected NewCC[] ensemble;
+    	protected ParallelCC[] ensemble;
     	
     	MultiLabelInstances trainingSet;
     	
@@ -136,12 +121,14 @@ public class PECC extends ECC {
     	
     	int i;
     	
+    	int numThreads;
+    	
 		/**
 		 * Constructor
 		 */
 		BuildEnsembleParallel(int numOfModels, Instances dataSet, Random rand, boolean useSamplingWithReplacement, 
-				int BagSizePercent, double samplingPercentage, int numLabels, NewCC[] ensemble, 
-				MultiLabelInstances trainingSet, Classifier baseClassifier, int i){
+				int BagSizePercent, double samplingPercentage, int numLabels, ParallelCC[] ensemble, 
+				MultiLabelInstances trainingSet, Classifier baseClassifier, int i, int numThreads){
 			this.numOfModels = numOfModels;
 			this.dataSet = dataSet;
 			this.rand = rand;
@@ -153,6 +140,7 @@ public class PECC extends ECC {
 			this.trainingSet = trainingSet;
 			this.baseClassifier = baseClassifier;
 			this.i = i;
+			this.numThreads = numThreads;
 		}
 		
 		/**
@@ -191,7 +179,9 @@ public class PECC extends ECC {
 	                chain[randomPosition] = temp;
 	            }
 
-	            ensemble[i] = new NewCC(baseClassifier, chain);
+	            //Further, each member of the ensemble is a PCC -> built in parallel
+	            ensemble[i] = new ParallelCC(baseClassifier, chain);
+	            ensemble[i].setNumThreads(numThreads);
 	            ensemble[i].build(train);
 			}catch(Exception e) {
 			e.printStackTrace();	

@@ -1,4 +1,3 @@
-package parallelCC;
 /*
  *    This program is free software; you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
@@ -14,15 +13,16 @@ package parallelCC;
  *    along with this program; if not, write to the Free Software
  *    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+package parallelCC.ensemble;
 
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import mulan.classifier.transformation.BinaryRelevance;
-import mulan.classifier.transformation.EBR;
+import mulan.classifier.transformation.ECC;
 import mulan.data.MultiLabelInstances;
+import parallelCC.NewCC;
 import weka.classifiers.Classifier;
 import weka.classifiers.trees.J48;
 import weka.core.Instances;
@@ -30,41 +30,31 @@ import weka.filters.Filter;
 import weka.filters.unsupervised.instance.RemovePercentage;
 
 /**
- * Simple implementation of Ensemble of BR classifiers (EBR)
+ * Parallel implementation of the Ensemble of Classifier Chain (PECC) algorithm.
+ * It works as ECC but each member of the ensemble is built in parallel.
  * For mor information, see <em></em>
  *
  * @author Jose M. Moyano
  * @version 2018.11.16
  */
-public class PEBR extends EBR {
+public class PECC extends ECC {
 
     /**
 	 * 
 	 */
-	private static final long serialVersionUID = 7920478979293219029L;
+	private static final long serialVersionUID = 6761308845058533229L;
 	
-	/**
-    * Number of threads to execute PCC in parallel
-    * By default, it obtains all available processors
-    */
-   int numThreads = Runtime.getRuntime().availableProcessors();
-
+    /**
+     * Number of threads to execute PCC in parallel
+     * By default, it obtains all available processors
+     */
+    int numThreads = Runtime.getRuntime().availableProcessors();
 
     /**
      * Default constructor
      */
-    public PEBR() {
+    public PECC() {
         this(new J48(), 10, true, true);
-    }
-    
-    public PEBR(int seed) {
-        this(new J48(), 10, true, true);
-        this.setSeed(seed);
-    }
-    
-    public PEBR(boolean useConfidences, int seed){
-    	this(new J48(), 10, useConfidences, true);
-    	this.setSeed(seed);
     }
 
     /**
@@ -75,11 +65,11 @@ public class PEBR extends EBR {
      * @param doUseConfidences whether to use confidences or not
      * @param doUseSamplingWithReplacement whether to use sampling with replacement or not 
      */
-    public PEBR(Classifier classifier, int aNumOfModels,
+    public PECC(Classifier classifier, int aNumOfModels,
             boolean doUseConfidences, boolean doUseSamplingWithReplacement) {
         super(classifier, aNumOfModels, doUseConfidences, doUseSamplingWithReplacement);
     }
-    
+        
     /**
      * Set number of threads
      * 
@@ -88,18 +78,19 @@ public class PEBR extends EBR {
     public void setNumThreads(int numThreads) {
     	this.numThreads = numThreads;
     }    
-
+    
     @Override
     protected void buildInternal(MultiLabelInstances trainingSet) throws Exception {
     	long time_init = System.currentTimeMillis();
     	
-    	//Set number of threads
-        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
-    	
         Instances dataSet = new Instances(trainingSet.getDataSet());
 
+        //Set number of threads
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        
+        //Build each member in a different thread
         for (int i = 0; i < numOfModels; i++) {
-        	executorService.execute(new BuildEnsembleParallel(numOfModels, dataSet, rand, useSamplingWithReplacement, 
+            executorService.execute(new BuildEnsembleParallel(numOfModels, dataSet, rand, useSamplingWithReplacement, 
             		BagSizePercent,  samplingPercentage, numLabels, ensemble, trainingSet, baseClassifier, i));
         }
         
@@ -111,11 +102,11 @@ public class PEBR extends EBR {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-        
+
         timeBuild = System.currentTimeMillis() - time_init;
     }
-    
 
+    
     /**
      * Class that extends Thread, for code that is executed in parallel
      * 
@@ -137,7 +128,7 @@ public class PEBR extends EBR {
     	
     	int numLabels;
     	
-    	protected BinaryRelevance[] ensemble;
+    	protected NewCC[] ensemble;
     	
     	MultiLabelInstances trainingSet;
     	
@@ -149,7 +140,7 @@ public class PEBR extends EBR {
 		 * Constructor
 		 */
 		BuildEnsembleParallel(int numOfModels, Instances dataSet, Random rand, boolean useSamplingWithReplacement, 
-				int BagSizePercent, double samplingPercentage, int numLabels, BinaryRelevance[] ensemble, 
+				int BagSizePercent, double samplingPercentage, int numLabels, NewCC[] ensemble, 
 				MultiLabelInstances trainingSet, Classifier baseClassifier, int i){
 			this.numOfModels = numOfModels;
 			this.dataSet = dataSet;
@@ -171,7 +162,7 @@ public class PEBR extends EBR {
 		 */
 		public void run() {
 			try {
-				Instances sampledDataSet;
+	            Instances sampledDataSet;
 	            dataSet.randomize(rand);
 	            if (useSamplingWithReplacement) {
 	                int bagSize = dataSet.numInstances() * BagSizePercent / 100;
@@ -189,7 +180,18 @@ public class PEBR extends EBR {
 	            }
 	            MultiLabelInstances train = new MultiLabelInstances(sampledDataSet, trainingSet.getLabelsMetaData());
 
-	            ensemble[i] = new BinaryRelevance(baseClassifier);
+	            int[] chain = new int[numLabels];
+	            for (int j = 0; j < numLabels; j++) {
+	                chain[j] = j;
+	            }
+	            for (int j = 0; j < chain.length; j++) {
+	                int randomPosition = rand.nextInt(chain.length);
+	                int temp = chain[j];
+	                chain[j] = chain[randomPosition];
+	                chain[randomPosition] = temp;
+	            }
+
+	            ensemble[i] = new NewCC(baseClassifier, chain);
 	            ensemble[i].build(train);
 			}catch(Exception e) {
 			e.printStackTrace();	

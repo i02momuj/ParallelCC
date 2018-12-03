@@ -1,0 +1,5 @@
+data/Emotions/Emotions-train1.arff data/Emotions/Emotions-test1.arff data/Emotions/Emotions.xml
+data/Emotions/Emotions-train2.arff data/Emotions/Emotions-test2.arff data/Emotions/Emotions.xml
+data/Emotions/Emotions-train3.arff data/Emotions/Emotions-test3.arff data/Emotions/Emotions.xml
+data/Emotions/Emotions-train4.arff data/Emotions/Emotions-test4.arff data/Emotions/Emotions.xml
+data/Emotions/Emotions-train5.arff data/Emotions/Emotions-test5.arff data/Emotions/Emotions.xml

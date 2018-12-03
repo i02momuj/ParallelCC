@@ -13,13 +13,14 @@
  *    along with this program; if not, write to the Free Software
  *    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-package parallelCC;
+package parallelCC.ensemble;
 
 import java.util.Arrays;
 import mulan.classifier.InvalidDataException;
 import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.transformation.ECC;
 import mulan.data.MultiLabelInstances;
+import parallelCC.ParallelCC;
 import weka.classifiers.Classifier;
 import weka.classifiers.trees.J48;
 import weka.core.Instance;
