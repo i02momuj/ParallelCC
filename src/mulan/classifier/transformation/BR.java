@@ -60,6 +60,8 @@ public class BR extends TransformationBasedMultiLabelLearner {
 
     /**
      * Get building time
+     * 
+     * @return Building time
      */
     public long getBuildingTime() {
     	return timeBuild;

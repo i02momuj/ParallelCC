@@ -32,10 +32,10 @@ import weka.filters.unsupervised.instance.RemovePercentage;
 /**
  * Parallel implementation of the Ensemble of Classifier Chain (PECC) algorithm.
  * It works as ECC but each member of the ensemble is built in parallel.
- * For mor information, see <em></em>
+ * For mor information, see <em>https://github.com/i02momuj/ParallelCC</em>
  *
  * @author Jose M. Moyano
- * @version 2018.11.16
+ * @version 2018.12.03
  */
 public class PECC extends ECC {
 

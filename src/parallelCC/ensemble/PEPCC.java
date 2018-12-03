@@ -31,10 +31,10 @@ import weka.filters.unsupervised.instance.RemovePercentage;
 /**
  * Parallel implementation of Ensemble of Parallel Classifier Chains (PEPCC).
  * Not only the members of the ensemble are PCCs, but also each member of the ensemble is able to be built in parallel.
- * For mor information, see <em></em>
+ * For mor information, see <em>https://github.com/i02momuj/ParallelCC</em>
  *
  * @author Jose M. Moyano
- * @version 2018.11.16
+ * @version 2018.12.03
  */
 public class PEPCC extends EPCC {
 

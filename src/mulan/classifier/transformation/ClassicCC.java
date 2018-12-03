@@ -104,6 +104,8 @@ public class ClassicCC extends TransformationBasedMultiLabelLearner {
     
     /**
      * Get building time
+     * 
+     * @return Building time
      */
     public long getBuildingTime() {
     	return timeBuild;

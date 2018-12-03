@@ -38,10 +38,10 @@ import weka.filters.unsupervised.attribute.Remove;
  * Implementation of the Parallel Classifier Chain (PCC) algorithm. 
  * It is able to build CC by using predictions on training; and not only ground truth (as Mulan).
  * Many binary classifiers are built in parallel, using predictions of labels that have been previously built.
- * For mor information, see <em></em>
+ * For more information, see <em>https://github.com/i02momuj/ParallelCC</em>
  *
  * @author Jose M. Moyano
- * @version 2018.11.16
+ * @version 2018.12.03
  */
 public class ParallelCC extends NewCC {	
     

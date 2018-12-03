@@ -18,8 +18,8 @@ In order to directly execute the provided ParallelCC jar, the following command 
 java -jar ParallelCC.jar [parameters]
 ```
 
-The jar file needs several parameters to indicate the method to execute, the dataset, and so on. The different parameters are the following:
-* With the ```-d``` parameter, we define the path of the file which includes the paths of the different datasets that we want to use in the experiment. That allows us to use many datasets or partitions with the same configuration. Each line of this file correspond to a different dataset, and must include, in this order and separated by spaces, the path to the train file, path to the test file, and path to the *xml* file.
+The jar file needs several parameters to indicate the method to execute, the number of threads, the datasets, and so on. The different parameters are the following:
+* With the ```-d``` parameter, we define the path of the file which includes the paths of the different datasets that we want to use in the experiment. This allows us to use many datasets or partitions with the same configuration. Each line of this file correspond to a different dataset, and it must include, in this order and separated by spaces: the path to the train file, path to the test file, and path to the *xml* file.
 * With the ```-t``` parameter, we set the number of threads to execute in parallel. If 0, it executes over all available threads. Further, if it is not set, its default value is 0.
 * With the ```-s``` parameter, we define the number of different seeds for random numbers to use in the experiments.
 * With the ```-o``` parameter, we define the filename for the file storing the results.

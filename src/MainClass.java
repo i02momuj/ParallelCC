@@ -46,8 +46,18 @@ import parallelCC.ensemble.PEPCC;
 import weka.classifiers.trees.J48;
 import weka.core.Utils;
 
+/**
+ * Main Class for directly execute the Parallel CC method (and many others).
+ * For more information, see <em>https://github.com/i02momuj/ParallelCC</em>
+ *
+ * @author Jose M. Moyano
+ * @version 2018.12.03
+ */
 public class MainClass {
 	
+	/**
+	 * Show the parameters that are needed to execute the main.
+	 */
 	public static void showUse()
 	{
 		System.out.println("Parameters:");
@@ -74,7 +84,7 @@ public class MainClass {
 	 *  4) -o Report filename
 	 *  5) -a Algorithm to execute (BR, CC, PCC)
 	 *  
-	 * @param args
+	 * @param args List of arguments
 	 */
 	public static void main(String [] args) {
 
@@ -267,6 +277,15 @@ public class MainClass {
 		System.out.println("Finished.");
 	}
 	
+	/**
+	 * Prints header of results file with the name of the metrics.
+	 * 
+	 * @param pw PrintWriter
+	 * @param measures List of evaluation measures
+	 * @param mlData Multi-label data
+	 * 
+	 * @throws Exception Exception
+	 */
 	public static void printHeader(PrintWriter pw, List<Measure> measures, MultiLabelInstances mlData) throws Exception{
 		//Print header
 	    pw.print("Dataset" + ";");
@@ -278,6 +297,18 @@ public class MainClass {
         pw.println();
 	}
 	
+	/**
+	 * Prints the results of a given method
+	 * 
+	 * @param pw PrintWriter
+	 * @param results Results of executing the MLC algorithm
+	 * @param dataname Name of the dataset
+	 * @param algorithm Name of the algorithm
+	 * @param runtime Runtime of the algorithm
+	 * @param buildTime Runtime to build the method
+	 * 
+	 * @throws Exception Exception
+	 */
 	public static void printResults(PrintWriter pw, Evaluation results, String dataname, String algorithm, long runtime, long buildTime) throws Exception {
 		String [] p = dataname.split("\\/");
 		String datasetName = p[p.length-1].split("\\.")[0];                   
@@ -291,6 +322,13 @@ public class MainClass {
         pw.println();  
 	}
 	
+	/**
+	 * Returns the list of measures used to evaluate a model
+	 * 
+	 * @param mlTrainData Multi-label data
+	 * 
+	 * @return List of Measures
+	 */
 	protected static List<Measure> prepareMeasuresClassification(MultiLabelInstances mlTrainData) {
         List<Measure> measures = new ArrayList<Measure>();
 

@@ -128,6 +128,8 @@ public class EBR extends TransformationBasedMultiLabelLearner {
     
     /**
      * Get building time
+     * 
+     * @return Building time
      */
     public long getBuildingTime() {
     	return timeBuild;

@@ -33,10 +33,10 @@ import weka.filters.unsupervised.instance.RemovePercentage;
  * It is an ensemble (like ECC) but uses PCC as members of the ensemble.
  * Therefore, although each member of the ensemble is built in sequential manner, the single-label classifiers
  * 	of each member are built in parallel.
- * For mor information, see <em></em>
+ * For more information, see <em>https://github.com/i02momuj/ParallelCC</em>
  *
  * @author Jose M. Moyano
- * @version 2018.11.16
+ * @version 2018.12.03
  */
 public class EPCC extends ECC {
 

@@ -33,10 +33,10 @@ import weka.filters.unsupervised.attribute.Remove;
 /**
  * Implementation of the Classifier Chain (CC) algorithm but using different implementation than the one of Mulan. 
  * It is able to build CC by using predictions on training; and not only ground truth (as Mulan).
- * For mor information, see <em></em>
+ * For more information, see <em>https://github.com/i02momuj/ParallelCC</em>
  *
  * @author Jose M. Moyano
- * @version 2018.11.16
+ * @version 2018.12.03
  */
 public class NewCC extends ClassicCC {
   

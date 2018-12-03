@@ -30,11 +30,11 @@ import weka.filters.Filter;
 import weka.filters.unsupervised.instance.RemovePercentage;
 
 /**
- * Simple implementation of Ensemble of BR classifiers (EBR)
- * For mor information, see <em></em>
+ * Parallel implementation of EBR. As all BR methods of the ensemble are independent, they could be built in parallel.
+ * For more information, see <em>https://github.com/i02momuj/ParallelCC</em>
  *
  * @author Jose M. Moyano
- * @version 2018.11.16
+ * @version 2018.12.03
  */
 public class PEBR extends EBR {
 
