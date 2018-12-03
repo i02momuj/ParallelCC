@@ -11,7 +11,7 @@ More information about this method can be find in the following article:
 
 <!---  If you use ParallelCC, please cite the paper. Further, a [bibtex citation file](https://github.com/i02momuj/ParallelCC) is also provided. -->
 
-In this repository we provide the code of ParallelCC, distributed under the GPLv3 License. ParallelCC has been implemented using Mulan [[Tso11]](#Tso11), and Weka [[Hal09]](#Hal09) libraries. Besides, the latest release [(v 1.1)](https://github.com/i02momuj/ParallelCC) provides the executable jar to execute ParallelCC (and other related algorithms) as well as the javadoc.
+In this repository we provide the code of ParallelCC, distributed under the GPLv3 License. ParallelCC has been implemented using Mulan [[Tso11]](#Tso11), and Weka [[Hal09]](#Hal09) libraries. Besides, the latest release [(v 1.1)](https://github.com/i02momuj/ParallelCC/releases/tag/v1.1) provides the executable jar to execute ParallelCC (and other related algorithms) as well as the javadoc.
 
 In order to directly execute the provided ParallelCC jar, the following command have to be executed in a console:
 ```sh
