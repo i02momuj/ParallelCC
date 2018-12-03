@@ -4,7 +4,9 @@ Classifier Chains (CC) [[Rea11]](#Rea11) is one of the best-performing methods i
 CC is based on the idea of building a binary classifier for each of the labels but linked in such a way that each binary classifier includes the predictions of previous labels in the chain as extra input features.
 Therefore, the original definition of CC made it inherently sequential and non-parallelizable, since each binary classifier needs the outputs of previous ones to be built.
 
-In this project, we propose a modified design or definition of CC in order to make it parallelizable.
+In this project, we propose a modified definition of CC in order to make it parallelizable, called Parallel Classifier Chains (PCC). In PCC, *k* binary classifiers are built in parallel, each including as extra input features the predictions of all previous classifiers that have already finished.
+As a result, each binary classifier will introduce less label information as input features, so the dependencies among labels might be modeled slightly worse. However, in high-dimensional label spaces, this difference is negligible, and also it will depend on how many classifiers are built in parallel.
+PCC has demonstrated that it is able to significantly reduce the runtime of CC while the predictive performance is not statistically significantly harmed.
 
 More information about this method can be find in the following article:
 > Jose M. Moyano, Eva L. Gibaja, Sebastián Ventura, and Alberto Cano. "Speeding up Classifier Chains in Multi-Label Classification". Submitted to *4th International Conference on Internet of Things, Big Data and Security*. (2019).
