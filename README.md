@@ -27,13 +27,19 @@ The jar file needs several parameters to indicate the method to execute, the num
 * With the ```-o``` parameter, we define the filename for the file storing the results.
 * With the ```-a``` parameter, we choose the algorithm to execute. It includes many classic methods such as BR, CC, EBR and ECC, which are not executed in parallel (regardless of the value of -t parameter). Further, parallel methods such as PCC (Parallel Classifier Chains), PEBR (Parallel Ensemble of Binary Relevance) and EPCC (Ensemble of Parallel Classifier Chains) can be choosen.
 
-Three multi-label datasets (*Emotions*, *Yeast*, and *Birds*) have been included in the repository as example; however, a wide variety of dataset are available at the [KDIS Research Group Repository](http://www.uco.es/kdis/mllresources/). Further, one example configuration file (*data.txt*) is also provided.
+Three multi-label datasets (*Emotions* [[Tso08]](#Tso08), *Yeast* [[Eli01]](#Eli01), and *Birds* [[Bri13]](#Bri13)) have been included in the repository as example; however, a wide variety of dataset are available at the [KDIS Research Group Repository](http://www.uco.es/kdis/mllresources/). Further, one example configuration file (*data.txt*) is also provided.
 
 ### References
 
-<a name="Hal09"></a>**[Hal09]** M. Hall, E. Frank, G. Holmes, B. Pfahringer, P. Reutemann, and I. H. Witten. (2009). The WEKA data mining software: an update. ACM SIGKDD explorations newsletter, 11(1), 10-18.
+<a name="Bri13"></a>**[Bri13]** F. Briggs et al. (2012). Acoustic classification of multiple simultaneous bird species: A multi-instance multi-label approach. *The Journal of the Acoustical Society of America*, 131(6), 4640-4650.
 
-<a name="Rea11"></a>**[Rea11]** J. Read, B. Pfahringer, G. Holmes, and E. Frank. (2011). Classifier chains for multi-label classification. Machine learning, 85(3), 333.
+<a name="Eli01"></a>**[Eli01]** A. Elisseeff and J. Weston. (2002). A kernel method for multi-labelled classification. In *Advances in neural information processing systems*, 681-687.
 
-<a name="Tso11"></a>**[Tso11]** G. Tsoumakas, E. Spyromitros-Xioufis, J. Vilcek, and I. Vlahavas. (2011). Mulan: A java library for multi-label learning. Journal of Machine Learning Research, 12, 2411-2414.
+<a name="Hal09"></a>**[Hal09]** M. Hall et al. (2009). The WEKA data mining software: an update. *ACM SIGKDD explorations newsletter*, 11(1), 10-18.
+
+<a name="Rea11"></a>**[Rea11]** J. Read, B. Pfahringer, G. Holmes, and E. Frank. (2011). Classifier chains for multi-label classification. *Machine learning*, 85(3), 333.
+
+<a name="Tso08"></a>**[Tso08]** G. Tsoumakas, I. Katakis, and I. Vlahavas. (2008). Effective and efficient multilabel classification in domains with large number of labels. In *Proc. ECML/PKDD 2008 Workshop on Mining Multidimensional Data (MMD’08)*, Vol. 21, 53-59.
+
+<a name="Tso11"></a>**[Tso11]** G. Tsoumakas, E. Spyromitros-Xioufis, J. Vilcek, and I. Vlahavas. (2011). Mulan: A java library for multi-label learning. *Journal of Machine Learning Research*, 12, 2411-2414.
 
